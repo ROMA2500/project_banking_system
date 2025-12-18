@@ -371,8 +371,6 @@ void bubbleSortTransactions()
     } while (swapped); // نكرر لو حصل تبديل
 }
 
-#include <iostream>  // مكتبة الإدخال والإخراج (cout / cin)
-using namespace std; // علشان نكتب cout بدل std::cout
 
 struct Branch
 {                    // تعريف struct اسمها Branch (فرع)
@@ -539,9 +537,36 @@ void in_add_customer()
     cin >> phone;
     cout << "Enter Email: ";
     cin >> email;
+    try
+    {
+        if (age <= 0)
+        {
+            throw invalid_argument("Age must be greater than zero.");
+
+        }
+
+        if (email.find('@') == string::npos || email.find('.') == string::npos)
+        {
+            throw invalid_argument("Invalid email format.");
+        }
+
+        if (name.empty())
+        {
+            throw invalid_argument("Name cannot be empty.");
+        }
+    }
+    catch (const invalid_argument &e)
+    {
+        cout << "Input Error: " << e.what() << endl;
+        return;
+    }
+
     add_customer(phone, age, name, email);
     cout << "Customer added successfully!" << endl;
+
+   
 }
+
 void add_loan_request(LoanQueue &q)
 {
     string loanName;
@@ -737,7 +762,7 @@ void customer_management_system()
             delete_transaction_by_id();
             break;
         case 15:
-            cout << "Exiting Customer Management System." << endl;
+            cout << "Exiting Banking  Management System." << endl;
             break;
         default:
             cout << "Invalid choice. Please try again." << endl;

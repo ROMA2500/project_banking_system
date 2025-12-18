@@ -344,7 +344,7 @@ void deleteTransaction(int id)
 // Bubble Sort لترتيب العمليات حسب ID
 void bubbleSortTransactions()
 {
-    if (head == NULL)
+    if (head1 == NULL)
         return; // لو الليست فاضية
 
     bool swapped;      // متغير نعرف بيه هل حصل تبديل ولا لا

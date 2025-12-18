@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <string>
 using namespace std;
 struct node
 {
@@ -321,6 +322,8 @@ void deleteTransaction(int id)
         {                     // لو لقينا العنصر
             if (temp == head1) // لو هو أول عنصر
                 head1 = temp->next;
+                if (head1 != NULL)
+                    head1->prev = NULL;
 
             if (temp == tail) // لو هو آخر عنصر
                 tail = temp->prev;
@@ -344,7 +347,7 @@ void deleteTransaction(int id)
 // Bubble Sort لترتيب العمليات حسب ID
 void bubbleSortTransactions()
 {
-    if (head == NULL)
+    if (head1 == NULL)
         return; // لو الليست فاضية
 
     bool swapped;      // متغير نعرف بيه هل حصل تبديل ولا لا
@@ -530,7 +533,8 @@ void in_add_customer()
     int phone, age;
     string name, email;
     cout << "Enter Name: ";
-    cin >> name;
+    cin.ignore();
+    getline(cin, name);
     cout << "Enter Age: ";
     cin >> age;
     cout << "Enter Phone: ";

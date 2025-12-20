@@ -4,6 +4,7 @@
 using namespace std;
 struct node
 {
+    int branchid;
     int phone;
     int age;
     int id;
@@ -15,32 +16,20 @@ struct node
 node *head = nullptr;
 int current_id = 0; // متغير لتتبع آخر ID مستخدم
 
-void add_customer(int phone, int age, string name, string email)
+void add_customer(int phone, int age, string name, string email, int branchid)
 {
 
+   
     node *newnode = new node();
     newnode->phone = phone;
     newnode->age = age;
+    newnode->branchid = branchid;
     newnode->name = name;
     newnode->email = email;
     current_id += 1;          // زوّد العدد
     newnode->id = current_id; // دي الـ ID الجديدة
     newnode->next = head;
     head = newnode;
-}
-void display()
-{
-    node *temp = head;
-    while (temp != nullptr)
-    {
-        cout << "ID: " << temp->id << endl;
-        cout << "Name: " << temp->name << endl;
-        cout << "Age: " << temp->age << endl;
-        cout << "Phone: " << temp->phone << endl;
-        cout << "Email: " << temp->email << endl;
-        cout << "---------------------" << endl;
-        temp = temp->next;
-    }
 }
 int remove_customer(int id)
 {
@@ -87,24 +76,27 @@ void sort_customers_byid()
                 swap(ptr1->age, ptr2->age);
                 swap(ptr1->phone, ptr2->phone);
                 swap(ptr1->email, ptr2->email);
+                swap(ptr1->branchid, ptr2->branchid);
             }
         }
     }
 }
-
-
+ 
 class LoanNode
 {
 public:
     string loanName; // اسم القرض اللي العميل قدمه
     LoanNode *next;  // بيوصل للنود اللي بعدها في الصف (Queue)
+    int customerID;  // رقم العميل
 
-    LoanNode(string name)
+    LoanNode(string name, int id)
     {
+        customerID = id;
         loanName = name;
         next = NULL; // أول ما النود تتعمل، ملهاش اللي بعدها لسه
     }
 };
+class RequestStack;
 
 // Queue class: الصف الكامل اللي بنضيف ونشيل منه
 class LoanQueue
@@ -114,15 +106,17 @@ private:
     LoanNode *rear;  // آخر حد في الصف
 
 public:
+    friend void display(LoanQueue &q, RequestStack &s);
+    LoanNode *getFront() { return front; }
     LoanQueue()
     {
         front = rear = NULL; // الصف فاضي في البداية
     }
 
     // enqueueLoan(): إضافة طلب قرض جديد للصف
-    void enqueueLoan(string name)
+    void enqueueLoan(string name, int customerID)
     {
-        LoanNode *newNode = new LoanNode(name); // نعمل نود جديدة
+        LoanNode *newNode = new LoanNode(name, customerID); // نعمل نود جديدة
 
         if (rear == NULL)
         {                           // لو الصف كان فاضي
@@ -134,7 +128,7 @@ public:
             rear = newNode;       // نخلي الريار هو النود الجديدة
         }
 
-        cout << "[QUEUE] Loan request added: " << name << endl;
+        cout << "[QUEUE] Loan request added for customer ID " << customerID << ": " << name << endl;
     }
 
     // dequeueLoan(): معالجة الطلب اللي واقف أول واحد في الصف
@@ -158,14 +152,18 @@ public:
     }
 
     // Display queue contents (مش مطلوب لكنه مفيد للتست)
-    void displayLoans()
+    void displayLoans(int customerID)
     {
         LoanNode *cur = front;
         cout << "Current Loan Queue: ";
 
         while (cur)
         {
-            cout << cur->loanName << " -> ";
+            if (cur->customerID == customerID)
+            {
+                cout << "Loan " << cur->loanName << " -> ";
+
+            }
             cur = cur->next;
         }
 
@@ -177,12 +175,14 @@ public:
 class ReqNode
 {
 public:
+    int customerID;
     string req;    // نص الطلب نفسه
     ReqNode *next; // النود اللي تحتها في ال Stack
 
-    ReqNode(string r)
+    ReqNode(int id, string r)
     {
         req = r;
+        customerID = id;
         next = NULL;
     }
 };
@@ -194,20 +194,23 @@ private:
     ReqNode *top; // آخر طلب دخل (أحدث طلب)
 
 public:
+    ReqNode *getTop() { return top; }
+    friend void display(LoanQueue &q, RequestStack &s);
+
     RequestStack()
     {
         top = NULL; // الستاك فاضي
     }
 
     // pushRequest(): إضافة طلب جديد فوق الستاك
-    void pushRequest(string r)
+    void pushRequest(string r, int customerID )
     {
-        ReqNode *newNode = new ReqNode(r); // نود جديدة
+        ReqNode *newNode = new ReqNode(customerID, r); // نود جديدة
 
         newNode->next = top; // تربطها بالنود اللي كانت فوق
         top = newNode;       // نخلي التوب هو النود دي
 
-        cout << "[STACK] Service request added: " << r << endl;
+        cout << "[STACK] Service request added for customer ID " << customerID << ": " << r << endl;
     }
 
     // popRequest(): معالجة أحدث طلب (اللي فوق)
@@ -242,11 +245,10 @@ public:
     }
 };
 
-
-
 // Node بتمثل كل Transaction في الـ Doubly Linked List
 struct Transaction
 {
+    int customerID;
     int id;        // رقم العملية
     string type;   // نوع العملية (deposit / withdrawal / transfer)
     double amount; // قيمة العملية
@@ -259,10 +261,13 @@ Transaction *head1 = NULL; // أول عنصر في الليست
 Transaction *tail = NULL; // آخر عنصر في الليست
 
 // addTransaction(): إضافة عملية جديدة
-void addTransaction(int id, string type, double amount)
+void addTransaction(int id, string type, double amount, int customerID)
 {
     Transaction *newNode = new Transaction; // إنشاء Node جديدة
-    newNode->id = id;                       // تخزين الـ ID
+    newNode->id = id;
+    newNode->customerID = customerID;
+
+    // تخزين الـ ID
     newNode->type = type;                   // تخزين نوع العملية
     newNode->amount = amount;               // تخزين المبلغ
     newNode->next = NULL;                   // مفيش عنصر بعده دلوقتي
@@ -300,13 +305,16 @@ void findTransaction(int id)
 }
 
 // viewTransactions(): عرض كل العمليات
-void viewTransactions()
+void viewTransactions(int customerID)
 {
     Transaction *temp = head1; // نبدأ من أول الليست
 
     while (temp != NULL)
     { // نلف على كل العناصر
-        cout << temp->id << " " << temp->type << " " << temp->amount << endl;
+        if (temp->customerID == customerID)
+        {
+            cout << temp->id << " " << temp->type << " " << temp->amount << endl;
+        }
         temp = temp->next; // نروح للي بعده
     }
 }
@@ -320,10 +328,12 @@ void deleteTransaction(int id)
     {
         if (temp->id == id)
         {                     // لو لقينا العنصر
-            if (temp == head1) // لو هو أول عنصر
+            if (temp == head1)
+            {
                 head1 = temp->next;
                 if (head1 != NULL)
                     head1->prev = NULL;
+            }
 
             if (temp == tail) // لو هو آخر عنصر
                 tail = temp->prev;
@@ -366,7 +376,7 @@ void bubbleSortTransactions()
                 swap(ptr1->id, ptr1->next->id);
                 swap(ptr1->type, ptr1->next->type);
                 swap(ptr1->amount, ptr1->next->amount);
-
+                swap(ptr1->customerID, ptr1->next->customerID);
                 swapped = true; // حصل تبديل
             }
             ptr1 = ptr1->next; // نروح للي بعده
@@ -376,19 +386,21 @@ void bubbleSortTransactions()
 
 
 struct Branch
-{                    // تعريف struct اسمها Branch (فرع)
-    int id;          // رقم الفرع
-    string name;     // اسم الفرع
-    string location; // مكان الفرع
-    Branch *left;    // مؤشر للفرع اللي على الشمال
-    Branch *right;   // مؤشر للفرع اللي على اليمين
+{                    
+
+    int id;        
+    string name;    
+    string location;
+    Branch *left;   
+    Branch *right;   
 };
 
 Branch *createBranch(int id, string name, string location)
 {
-    Branch *newBranch = new Branch; // إنشاء فرع جديد في الذاكرة
-    newBranch->id = id;             // تخزين الـ ID
-    newBranch->name = name;         // تخزين اسم الفرع
+    Branch *newBranch = new Branch;
+    newBranch->id = id;    
+            
+    newBranch->name = name;         
     newBranch->location = location; // تخزين مكان الفرع
     newBranch->left = NULL;         // مفيش فرع شمال
     newBranch->right = NULL;        // مفيش فرع يمين
@@ -496,6 +508,14 @@ void sortBranchesByID(Branch *root)
         sortBranchesByID(root->right);  // نطبع اليمين
     }
 }
+void displayBranches(Branch *root)
+{
+    if (!root)
+        return;
+    displayBranches(root->left);
+    cout << "Branch ID: " << root->id << " Name: " << root->name << " Location: " << root->location << endl;
+    displayBranches(root->right);
+}
 
 void searchCustomerOrTransaction(int arr[], int size, int target)
 {
@@ -510,6 +530,73 @@ void searchCustomerOrTransaction(int arr[], int size, int target)
     cout << "ID not found" << endl; // لو مش موجود
 
 }
+void display(LoanQueue &q, RequestStack &s, Branch *branchRoot)
+{
+    node *temp = head;
+    while (temp != nullptr)
+    {
+        cout << "ID: " << temp->id << endl;
+        cout << "Name: " << temp->name << endl;
+        cout << "Age: " << temp->age << endl;
+        cout << "Phone: " << temp->phone << endl;
+        cout << "Email: " << temp->email << endl;
+        cout << "Branch ID: " << temp->branchid << endl;
+
+        // عرض المعاملات الخاصة بالعميل
+        cout << "Transactions:" << endl;
+        Transaction *t = head1;
+        bool hasTransaction = false;
+        while (t != nullptr)
+        {
+            if (t->customerID == temp->id)
+            {
+                cout << "  " << t->id << " " << t->type << " " << t->amount << endl;
+                hasTransaction = true;
+            }
+            t = t->next;
+        }
+        if (!hasTransaction)
+            cout << "  None" << endl;
+
+        // عرض طلبات القروض الخاصة بالعميل
+        cout << "Loan Requests:" << endl;
+        LoanNode *l = q.getFront(); // استخدم getter
+        bool hasLoan = false;
+        while (l != nullptr)
+        {
+            if (l->customerID == temp->id)
+            {
+                cout << "  " << l->loanName << endl;
+                hasLoan = true;
+            }
+            l = l->next;
+        }
+        if (!hasLoan)
+            cout << "  None" << endl;
+
+        // عرض طلبات الخدمة الخاصة بالعميل
+        cout << "Service Requests:" << endl;
+        ReqNode *r = s.getTop(); // استخدم getter
+        bool hasReq = false;
+        while (r != nullptr)
+        {
+            if (r->customerID == temp->id)
+            {
+                cout << "  " << r->req << endl;
+                hasReq = true;
+            }
+            r = r->next;
+        }
+        if (!hasReq)
+            cout << "  None" << endl;
+
+        cout << "---------------------" << endl;
+        temp = temp->next;
+    }
+    cout << "Branches:" << endl;
+    displayBranches(branchRoot); // pass the BST root
+}
+
 void menu()
 {
     cout << "===== Customer Management System =====" << endl;
@@ -530,6 +617,9 @@ void menu()
     cout << "15- Exit" << endl;}
 void in_add_customer()
 {
+
+    int branchid;
+
     int phone, age;
     string name, email;
     cout << "Enter Name: ";
@@ -541,6 +631,8 @@ void in_add_customer()
     cin >> phone;
     cout << "Enter Email: ";
     cin >> email;
+    cout << "Enter Branch ID: ";
+    cin >> branchid;
     try
     {
         if (age <= 0)
@@ -565,7 +657,7 @@ void in_add_customer()
         return;
     }
 
-    add_customer(phone, age, name, email);
+    add_customer(phone, age, name, email, branchid);
     cout << "Customer added successfully!" << endl;
 
    
@@ -573,35 +665,57 @@ void in_add_customer()
 
 void add_loan_request(LoanQueue &q)
 {
+    int custID;
     string loanName;
+
+    cout << "Enter Customer ID: ";
+    cin >> custID;
+
     cout << "Enter Loan Name: ";
     cin >> loanName;
-    q.enqueueLoan(loanName);
+
+    q.enqueueLoan(loanName, custID);
 }
 void add_service_request(RequestStack &s)
 {
+    int custID;
     string serviceReq;
+
+    cout << "Enter Customer ID: ";
+    cin >> custID;
+
     cout << "Enter Service Request: ";
     cin >> serviceReq;
-    s.pushRequest(serviceReq);
+
+    s.pushRequest(serviceReq, custID);
 }
 void add_transaction()
 {
-    int id;
+    int custID, id;
     string type;
     double amount;
+
+    cout << "Enter Customer ID: ";
+    cin >> custID;
+
     cout << "Enter Transaction ID: ";
     cin >> id;
-    cout << "Enter Transaction Type (deposit/withdrawal/transfer): ";
+
+    cout << "Enter Transaction Type (<deposit>/<withdrawal>/<transfer>):  ";
     cin >> type;
+
     cout << "Enter Transaction Amount: ";
     cin >> amount;
-    addTransaction(id, type, amount);
+
+    addTransaction(id, type, amount, custID);
 }
 void view_all_transactions()
 {
-    cout << "All Transactions:" << endl;
-    viewTransactions();
+    int custID;
+    cout << "Enter Customer ID: ";
+    cin >> custID;
+
+    viewTransactions(custID);
 }
 void sort_all_transactions()
 {
@@ -704,7 +818,7 @@ void customer_management_system()
             break;
         }
         case 3:
-            display();
+            display(q, s, root);
             break;
         case 4:
             sort_customers_byid();
